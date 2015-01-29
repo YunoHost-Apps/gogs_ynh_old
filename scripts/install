@@ -29,8 +29,8 @@ sudo apt-get -y install gogs
 
 # repository path
 repo_path=/home/yunohost.app/$app
-sudo mkdir -p $data_path
-sudo chown -hR gogs:gogs $data_path
+sudo mkdir -p $repo_path
+sudo chown -hR gogs:gogs $repo_path
 sudo yunohost app setting $app repopath -v $repo_path
 
 # Generate random key
