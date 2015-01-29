@@ -1,0 +1,35 @@
+{
+    "name": "Gogs",
+    "id": "gogs",
+    "description": {
+        "en": "A self-hosted Git service written in Go",
+        "fr": "A self-hosted Git service written in Go" 
+    },
+    "url": "http://gogs.io/",
+    "maintainer": {
+        "name": "mbugeia",
+        "email": "gogs@mbugeia.eu"
+    },
+    "multi_instance": "false",
+    "arguments": {
+        "install" : [
+            {
+                "name": "domain",
+                "ask": {
+                    "en": "Choose a domain for Gogs",
+                    "fr": "Choisissez un domaine pour Gogs"
+                },
+                "example": "domain.org"
+            },
+            {
+                "name": "path",
+                "ask": {
+                    "en": "Choose a path for Gogs",
+                    "fr": "Choisissez un chemin pour Gogs"
+                },
+                "example": "/gogs",
+                "default": "/gogs"
+            }
+        ]
+    }
+}

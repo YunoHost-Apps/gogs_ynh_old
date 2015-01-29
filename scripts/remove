@@ -1,0 +1,23 @@
+#!/bin/bash
+app=gogs
+
+# Retrieve arguments
+domain=$(sudo yunohost app setting $app domain)
+root_pwd=$(sudo cat /etc/yunohost/mysql)
+
+# Remove data
+repo_path=$(sudo yunohost app setting $app repopath)
+sudo rm -rf $repo_path
+
+# Remove app
+sudo apt-get -y remove gogs
+
+# Remove database
+mysql -u root -p$root_pwd -e "DROP DATABASE $app ; DROP USER $app@localhost ;"
+
+# Remove configuration files
+sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
+
+# Restart services
+sudo service nginx reload
+sudo yunohost app ssowatconf

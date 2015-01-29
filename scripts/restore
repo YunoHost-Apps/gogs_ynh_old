@@ -1,0 +1,21 @@
+#!/bin/bash
+app=gogs
+
+# The parameter $1 is the uncompressed restore directory location
+backup_dir=$1/apps/$app
+
+# Restore data
+repo_path=$(sudo yunohost app setting $app repopath)
+sudo cp -a $backup_dir/data/. $repo_path
+
+# Restore mysql dump
+db_pwd=$(sudo yunohost app setting $app mysqlpwd)
+sudo mysql -u $app -p$db_pwd $app < $backup_dir/$app.dmp
+
+# Restore Nginx and YunoHost parameters
+sudo cp -a $backup_dir/yunohost/. /etc/yunohost/apps/$app
+domain=$(sudo yunohost app setting $app domain)
+sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
+
+# Restart webserver
+sudo service nginx reload
