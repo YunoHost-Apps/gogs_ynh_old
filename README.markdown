@@ -17,4 +17,4 @@ Work:
  - SSO with the first user
 
 TODO
- - test backup and restore script (don't tested)
+ - Backup and restore script
