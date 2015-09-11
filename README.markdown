@@ -12,9 +12,5 @@ Gogs v0.5.11
 Arch:
 With x86-64 arch it use the binary and with other arch it will be compilled buit it is only available on debian 8 (Jessie).
 
-Work:
- - The app :D
- - SSO with the first user
-
 TODO
  - Backup and restore script
