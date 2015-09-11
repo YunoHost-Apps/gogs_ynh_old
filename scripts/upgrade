@@ -4,35 +4,59 @@ app=gogs
 # Retrieve settings
 domain=$(sudo yunohost app setting $app domain)
 path=$(sudo yunohost app setting $app path)
-admin=$(sudo yunohost app setting $app adminusername)
-email=$(sudo yunohost user info $admin | grep mail: | sed "s/mail: //g")
+repo_path=$(sudo yunohost app setting $app repopath)
 db_pwd=$(sudo yunohost app setting $app mysqlpwd)
+key=$(sudo yunohost app setting $app secret_key)
+architecture=$(sudo yunohost app setting $app architecture)
 
-final_path=/var/www/$app
-mv $final_path $final_path.old
+# cut the second "/"
+path="/$(echo "$path" | cut -d/ -f2)"
 
-sudo mkdir -p $final_path
-sudo cp -a ../sources/* $final_path
-sudo cp -a $final_path.old/data $final_path/data
-rm -Rf $final_path.old
 
-# Copy and edit config.php
-sudo cp ../conf/config.php $final_path
-sudo sed -i "s/yuno_dbpdw/$db_pwd/g" $final_path/config.php
-sudo sed -i "s/yuno_dbuser/$app/g" $final_path/config.php
-sudo sed -i "s/yuno_admin/$admin/g" $final_path/config.php
-sudo sed -i "s/yuno_email/$email/g" $final_path/config.php
-sudo sed -i "s/yuno_url/$domain$path/g" $final_path/config.php
-sudo sed -i "s/yuno_domain/$domain/g" $final_path/config.php
+if [[ $architecture = "other" ]]
+then
+    # Build Gogs
+    base_directory=$PWD
+    export GOPATH=/opt/gogs_build
+    cd /opt/gogs_build
+    sudo GOPATH=/opt/gogs_build: go get -u github.com/gogits/gogs
+    cd src/github.com/gogits/gogs
+    sudo GOPATH=/opt/gogs_build: go build
+    cd $base_directory
 
-# Set permissions to data directory
-sudo chown -R www-data:www-data $final_path/data
+    # Configure init script
+    sudo cp -r ../sources/systemd/. /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable gogs.service
+    sudo systemctl enable gogs-web.service
+
+    # Install some files from debian package
+    sudo cp ../sources/gogs_default /etc/default/gogs
+    sudo cp ../sources/gogs /usr/bin/gogs 
+    sudo cp ../sources/other /etc/gogs/conf.d/other
+    sudo chmod +x /usr/bin/gogs
+    sudo cp -r ../sources/vendor /opt/gogs/
+    sudo chown gogs:gogs -R /etc/gogs
+    sudo chmod 740 -R /etc/gogs
+fi
+
+
+# Copy and edit app.ini
+sudo cp ../conf/app.ini /opt/gogs/custom/conf
+sudo sed -i "s@yuno_repo@$repo_path@g" /opt/gogs/custom/conf/app.ini
+sudo sed -i "s@yuno_url@$domain$path@g" /opt/gogs/custom/conf/app.ini
+sudo sed -i "s/yuno_dbpdw/$db_pwd/g" /opt/gogs/custom/conf/app.ini
+sudo sed -i "s/yuno_dbuser/$app/g" /opt/gogs/custom/conf/app.ini
+sudo sed -i "s/yuno_domain/$domain/g" /opt/gogs/custom/conf/app.ini
+sudo sed -i "s/yuno_key/$key/g" /opt/gogs/custom/conf/app.ini
+sudo chown gogs:gogs /opt/gogs/custom/conf/app.ini
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
 sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf*
-sed -i "s@ALIASTOCHANGE@$final_path/@g" ../conf/nginx.conf*
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
 # Reload Nginx and regenerate SSOwat conf
 sudo service nginx reload
 sudo yunohost app ssowatconf
+
+sudo service gogs-web restart

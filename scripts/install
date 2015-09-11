@@ -4,6 +4,10 @@ app=gogs
 # Retrieve arguments
 domain=$1
 path=$2
+admin=$3
+password=$4
+is_public=$5
+architecture=$6
 
 # Check domain/path availability
 sudo yunohost app checkurl $domain$path -a $app
@@ -14,27 +18,88 @@ fi
 # Generate random password
 db_pwd=$(dd if=/dev/urandom bs=1 count=200 2> /dev/null | tr -c -d 'A-Za-z0-9' | sed -n 's/\(.\{24\}\).*/\1/p')
 
+
 # Initialize database and store mysql password for upgrade
 sudo yunohost app initdb $app -p $db_pwd
 sudo yunohost app setting $app mysqlpwd -v $db_pwd
-# sudo yunohost app setting $app adminusername -v $admin
 
-# Add repository
-sudo wget -qO - https://deb.packager.io/key | sudo apt-key add -
-sudo echo "deb https://deb.packager.io/gh/pkgr/gogs wheezy pkgr" | sudo tee /etc/apt/sources.list.d/gogs.list
+# Generate random key
+key=$(dd if=/dev/urandom bs=1 count=200 2> /dev/null | tr -c -d 'A-Za-z0-9' | sed -n 's/\(.\{15\}\).*/\1/p')
 
-# install gogs
-sudo apt-get update
-sudo apt-get -y install gogs apt-transport-https
+# store config in yunohost
+sudo yunohost app setting $app adminusername -v $admin
+sudo yunohost app setting $app is_public -v $is_public
+sudo yunohost app setting $app secret_key -v $key
+sudo yunohost app setting $app architecture -v $architecture
+
+if [[ $architecture = "other" ]]
+then
+    # Build Gogs
+    base_directory=$PWD
+    sudo apt-get -y install git golang
+    sudo mkdir -p /opt/gogs_build
+    export GOPATH=/opt/gogs_build
+    cd /opt/gogs_build
+    sudo GOPATH=/opt/gogs_build: go get -u github.com/gogits/gogs
+    cd src/github.com/gogits/gogs
+    sudo GOPATH=/opt/gogs_build: go build
+    cd $base_directory
+    sudo ln -s /opt/gogs_build/src/github.com/gogits/gogs /opt/gogs
+
+    # Configure logrotate
+    sudo cp ../sources/logrotate /etc/logrotate.d/gogs
+    sudo service rsyslog restart
+
+    # Add users
+    sudo addgroup gogs --system --quiet
+    sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
+    sudo chown -R gogs:gogs /opt/gogs
+    
+    # link app log directory to /var/log/NAME
+    sudo rm -rf /opt/gogs/log
+    sudo mkdir /var/log/gogs
+    sudo ln -fs /var/log/gogs /opt/gogs/log
+    sudo chown -R gogs:gogs /var/log/gogs
+
+    # Configure init script
+    sudo cp -r ../sources/systemd/. /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable gogs.service
+    sudo systemctl enable gogs-web.service
+
+    # Install some files from debian package
+    sudo cp ../sources/gogs_default /etc/default/gogs
+    sudo cp ../sources/gogs /usr/bin/gogs 
+    sudo chmod +x /usr/bin/gogs
+    sudo cp -r ../sources/vendor /opt/gogs/
+    sudo mkdir -p /etc/gogs/conf.d
+    sudo cp ../sources/other /etc/gogs/conf.d/other
+    sudo chown gogs:gogs -R /etc/gogs
+    sudo chmod 740 -R /etc/gogs
+    
+    # Build directory for custom config
+    sudo mkdir -p /opt/gogs/custom/conf/
+else
+    # install depencence for apt
+    sudo apt-get -y install apt-transport-https
+
+    # Add repository
+    sudo wget -qO - https://deb.packager.io/key | sudo apt-key add -
+    sudo echo "deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr" | sudo tee /etc/apt/sources.list.d/gogs.list
+
+    # install gogs
+    sudo apt-get update
+    sudo apt-get -y install gogs
+    
+    # Add mysql service as dependence for gogs (in boot)
+    sudo sed -i "s@After=gogs-web.service@After=gogs-web.service mysql.service@g" /etc/systemd/system/gogs-web-1.service
+fi
 
 # repository path
 repo_path=/home/yunohost.app/$app
 sudo mkdir -p $repo_path
 sudo chown -hR gogs:gogs $repo_path
 sudo yunohost app setting $app repopath -v $repo_path
-
-# Generate random key
-key=$(dd if=/dev/urandom bs=1 count=200 2> /dev/null | tr -c -d 'A-Za-z0-9' | sed -n 's/\(.\{15\}\).*/\1/p')
 
 # Copy and edit app.ini
 sudo cp ../conf/app.ini /opt/gogs/custom/conf
@@ -46,24 +111,30 @@ sudo sed -i "s/yuno_domain/$domain/g" /opt/gogs/custom/conf/app.ini
 sudo sed -i "s/yuno_key/$key/g" /opt/gogs/custom/conf/app.ini
 sudo chown gogs:gogs /opt/gogs/custom/conf/app.ini
 
+# Add ldap config
+sudo service gogs-web restart # for building mysql table
+sleep 10
+mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
+
+# add admin user
+curl --user $admin:$password http://localhost:6000 > /dev/null # create a user in the gogs database
+mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/add_admin.sql
+
 # Add Gogs to YunoHost's monitored services
 sudo yunohost service add gogs-web --log /var/log/gogs-web.log
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
 sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf*
-# sed -i "s@ALIASTOCHANGE@$final_path/@g" ../conf/nginx.conf*
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
+if [ "$is_public" = "Yes" ]
+then
+	sudo yunohost app setting gogs unprotected_uris -v "/"
+fi
+
 # Reload Nginx and regenerate SSOwat conf
-sudo service nginx reload
 sudo yunohost app ssowatconf
+sudo service nginx reload
 
 sudo service gogs-web restart
 
-# TODO
-# admin=$3
-# Retrieve admin email
-# email=$(sudo yunohost user info $admin | grep mail: | sed "s/mail: //g")
-# password=$4
-# install with curl and parameter for $admin / $password / $email
-# after install launch sql script to activate ldap auth see ../conf/login_source.sql (not working config)

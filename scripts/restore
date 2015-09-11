@@ -4,9 +4,23 @@ app=gogs
 # The parameter $1 is the uncompressed restore directory location
 backup_dir=$1/apps/$app
 
+# install depencence for apt
+sudo apt-get -y install apt-transport-https
+
+# Add repository
+sudo wget -qO - https://deb.packager.io/key | sudo apt-key add -
+sudo echo "deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr" | sudo tee /etc/apt/sources.list.d/gogs.list
+
+# install gogs
+sudo apt-get update
+sudo apt-get -y install gogs 
+
 # Restore data
 repo_path=$(sudo yunohost app setting $app repopath)
 sudo cp -a $backup_dir/data/. $repo_path
+
+# Restore config
+sudo cp $backup_dir/conf/app.ini /opt/gogs/custom/conf/app.ini
 
 # Restore mysql dump
 db_pwd=$(sudo yunohost app setting $app mysqlpwd)
@@ -19,3 +33,5 @@ sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
 # Restart webserver
 sudo service nginx reload
+
+sudo service gogs start

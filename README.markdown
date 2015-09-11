@@ -9,16 +9,12 @@ Official website: <http://gogs.io/>
 
 Gogs v0.5.11
 
+Arch:
+With x86-64 arch it use the binary and with other arch it will be compilled buit it is only available on debian 8 (Jessie).
+
 Work:
  - The app :D
  - SSO with the first user
 
-Don't work for now:
- - Not fully automated, still have to populate an admin (same name as your yunohost user) and click install
- - LDAP (not configured)
-
 TODO
- - finish install with curl and admin / password / email
- - ldap config in database
- - find a way to don't use app password but ldap auth for the admin
- - upgrade script
+ - test backup and restore script (don't tested)

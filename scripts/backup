@@ -8,7 +8,12 @@ mkdir -p $backup_dir
 
 # Backup data
 repo_path=$(sudo yunohost app setting $app repopath)
+mkdir -p $backup_dir/data
 sudo cp -a $repo_path/. $backup_dir/data
+
+# Backup config
+mkdir -p $backup_dir/conf
+cp /opt/gogs/custom/conf/app.ini $backup_dir/conf/app.ini
 
 # Backup mysql
 db_pwd=$(sudo yunohost app setting $app mysqlpwd)

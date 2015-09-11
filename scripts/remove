@@ -4,13 +4,35 @@ app=gogs
 # Retrieve arguments
 domain=$(sudo yunohost app setting $app domain)
 root_pwd=$(sudo cat /etc/yunohost/mysql)
+architecture=$(sudo yunohost app setting $app architecture)
+
+sudo service gogs stop
 
 # Remove data
 repo_path=$(sudo yunohost app setting $app repopath)
 sudo rm -rf $repo_path
 
 # Remove app
-sudo apt-get -y remove gogs
+if [[ $architecture = "other" ]]
+then
+    sudo rm -rf /usr/bin/gogs
+    sudo rm -rf /opt/gogs
+    sudo rm -rf /opt/gogs_build
+    sudo rm -rf /etc/ini.d/gogs*
+    sudo rm -rf /etc/systemd/system/gogs*
+    sudo rm -rf /etc/gogs
+    sudo rm -rf /etc/logrotate.d/gogs
+    sudo rm -rf /etc/default/gogs
+    sudo service rsyslog restart
+    sudo rm -rf /var/log/gogs
+    sudo userdel gogs
+    sudo update-rc.d gogs remove
+else
+    sudo apt-get -y remove gogs
+fi
+
+# Remove home directory
+sudo rm -rf /home/gogs
 
 # Remove database
 mysql -u root -p$root_pwd -e "DROP DATABASE $app ; DROP USER $app@localhost ;"
