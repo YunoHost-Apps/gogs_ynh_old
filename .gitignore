@@ -42,6 +42,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Kate
-*.kateproject
-*.kateproject.d
+# From kateproject
+.kateproject
+.kateproject.d
