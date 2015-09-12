@@ -95,6 +95,10 @@ else
     sudo sed -i "s@After=gogs-web.service@After=gogs-web.service mysql.service@g" /etc/systemd/system/gogs-web-1.service
 fi
 
+# Build directory for avatar
+sudo mkdir -p  /opt/gogs_build/src/github.com/gogits/gogs/data/avatars
+sudo chown gogs:gogs -R  /opt/gogs/data
+
 # repository path
 repo_path=/home/yunohost.app/$app
 sudo mkdir -p $repo_path
@@ -113,7 +117,7 @@ sudo chown gogs:gogs /opt/gogs/custom/conf/app.ini
 
 # Add ldap config
 sudo service gogs-web restart # for building mysql table
-sleep 10
+sleep 30
 mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
 
 # add admin user
