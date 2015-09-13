@@ -33,6 +33,7 @@ fi
 
 # Remove home directory
 sudo rm -rf /home/gogs
+sudo rm -rf /home/yunohost.app/gogs
 
 # Remove database
 mysql -u root -p$root_pwd -e "DROP DATABASE $app ; DROP USER $app@localhost ;"
