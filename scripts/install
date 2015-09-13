@@ -96,7 +96,7 @@ else
 fi
 
 # Build directory for avatar
-sudo mkdir -p  /opt/gogs_build/src/github.com/gogits/gogs/data/avatars
+sudo mkdir -p  /opt/gogs/data/avatars
 sudo chown gogs:gogs -R  /opt/gogs/data
 
 # repository path
