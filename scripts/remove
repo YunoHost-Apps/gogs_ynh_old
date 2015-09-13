@@ -27,12 +27,12 @@ then
     sudo rm -rf /var/log/gogs
     sudo userdel gogs
     sudo update-rc.d gogs remove
+    sudo rm -rf /home/gogs
 else
     sudo apt-get -y remove gogs
 fi
 
 # Remove home directory
-sudo rm -rf /home/gogs
 sudo rm -rf /home/yunohost.app/gogs
 
 # Remove database
