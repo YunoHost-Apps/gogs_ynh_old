@@ -7,39 +7,99 @@ path=$(sudo yunohost app setting $app path)
 repo_path=$(sudo yunohost app setting $app repopath)
 db_pwd=$(sudo yunohost app setting $app mysqlpwd)
 key=$(sudo yunohost app setting $app secret_key)
-architecture=$(sudo yunohost app setting $app architecture)
 
-# cut the second "/"
+# cut the second "/" of path
 path="/$(echo "$path" | cut -d/ -f2)"
 
-
-if [[ $architecture = "other" ]]
+# Migrate from deb package to app package sources
+if [[ -n $(sudo dpkg -l | grep gogs) ]]
 then
-    # Build Gogs
-    base_directory=$PWD
-    export GOPATH=/opt/gogs_build
-    cd /opt/gogs_build
-    sudo GOPATH=/opt/gogs_build: go get -u github.com/gogits/gogs
-    cd src/github.com/gogits/gogs
-    sudo GOPATH=/opt/gogs_build: go build
-    cd $base_directory
+	package_removed='true'
+	
+	# Save gogs directory before deleting package
+	sudo cp -r /opt/gogs /opt/gogs_old
+	
+	# Purge deb package
+	sudo apt-get autoremove --purge -y gogs
+	sudo rm -rf /etc/init.d/gogs*
 
-    # Configure init script
-    sudo cp -r ../sources/systemd/. /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable gogs.service
-    sudo systemctl enable gogs-web.service
-
-    # Install some files from debian package
-    sudo cp ../sources/gogs_default /etc/default/gogs
-    sudo cp ../sources/gogs /usr/bin/gogs 
-    sudo cp ../sources/other /etc/gogs/conf.d/other
-    sudo chmod +x /usr/bin/gogs
-    sudo cp -r ../sources/vendor /opt/gogs/
-    sudo chown gogs:gogs -R /etc/gogs
-    sudo chmod 740 -R /etc/gogs
+	# Clean old directory
+	sudo rm -rf /opt/gogs
+	
+	# Create new directory for gogs
+	sudo mkdir -p /opt/gogs_src/src/github.com/gogits/gogs
+	sudo ln -s /opt/gogs_src/src/github.com/gogits/gogs /opt/gogs
+	sudo mkdir -p  /opt/gogs/data/avatars
+	
+	# Restore from backup gogs directory
+	sudo cp -r /opt/gogs_old/. /opt/gogs/
+	sudo rm -rf /opt/gogs_old
+	
+	# Install dependances (use backport repo for wheezy for golang package)
+	if [[ $(cat /etc/debian_version) = "7."* ]]
+	then
+		sudo apt-get -y install git
+		sudo echo "deb http://http.debian.net/debian wheezy-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+		sudo apt-get update
+		sudo apt-get install -y golang=2:1.3.3-1~bpo70+1 golang-go=2:1.3.3-1~bpo70+1 golang-src=2:1.3.3-1~bpo70+1 golang-doc=2:1.3.3-1~bpo70+1 -V
+		sudo rm /etc/apt/sources.list.d/debian-backport-tmp.list
+		sudo apt-get update
+	else
+		sudo apt-get -y install git golang
+	fi
 fi
 
+# Build Gogs
+base_directory=$PWD
+export GOPATH=/opt/gogs_src
+tar xzf ../sources/gogs_src.tar.gz
+sudo cp -r gogs_src/. $GOPATH/
+cd $GOPATH/src/github.com/gogits/gogs
+sudo GOPATH=/opt/gogs_src: go get ./...
+sudo GOPATH=/opt/gogs_src: go build
+cd $base_directory
+
+# Configure gogs for package from app
+if [[ $package_removed = 'true' ]]
+then
+	# Configure logrotate
+	sudo cp ../conf/logrotate /etc/logrotate.d/gogs
+	sudo service rsyslog restart
+
+	# Add users
+	sudo addgroup gogs --system --quiet
+	sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
+
+	# link app log directory to /var/log/gogs
+	sudo rm -rf /opt/gogs/log
+	sudo ln -fs /var/log/gogs /opt/gogs/log
+	sudo chown -R gogs:gogs /var/log/gogs
+
+	# Configure init script
+	if [[ $(cat /etc/debian_version) = "7."* ]]
+	then
+		sudo cp ../conf/sysvinit/gogs /etc/init.d/
+		sudo chmod u+x /etc/init.d/gogs
+		sudo update-rc.d gogs defaults
+	else
+		sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
+		sudo systemctl daemon-reload
+		sudo systemctl enable gogs.service
+	fi
+	
+	# Change monitor parametre
+	sudo yunohost service remove gogs-web
+	sudo yunohost service add gogs --log /var/log/gogs.log
+
+	# Build directory for custom config
+	sudo mkdir -p /opt/gogs/custom/conf/
+
+	# Build directory for avatar
+	sudo mkdir -p  /opt/gogs/data/avatars
+fi
+
+# Set gogs user for gogs directory
+sudo chown gogs:gogs -R  /opt/gogs_src
 
 # Copy and edit app.ini
 sudo cp ../conf/app.ini /opt/gogs/custom/conf
@@ -59,4 +119,4 @@ sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 sudo service nginx reload
 sudo yunohost app ssowatconf
 
-sudo service gogs-web restart
+sudo service gogs restart

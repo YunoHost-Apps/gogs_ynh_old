@@ -4,7 +4,6 @@ app=gogs
 # Retrieve arguments
 domain=$(sudo yunohost app setting $app domain)
 root_pwd=$(sudo cat /etc/yunohost/mysql)
-architecture=$(sudo yunohost app setting $app architecture)
 
 sudo service gogs stop
 
@@ -12,31 +11,34 @@ sudo service gogs stop
 repo_path=$(sudo yunohost app setting $app repopath)
 sudo rm -rf $repo_path
 
-# Remove app
-if [[ $architecture = "other" ]]
+# Remove init script
+if [[ $(cat /etc/debian_version) = "7."* ]]
 then
-    sudo rm -rf /usr/bin/gogs
-    sudo rm -rf /opt/gogs
-    sudo rm -rf /opt/gogs_build
-    sudo rm -rf /etc/ini.d/gogs*
-    sudo rm -rf /etc/systemd/system/gogs*
-    sudo rm -rf /etc/gogs
-    sudo rm -rf /etc/logrotate.d/gogs
-    sudo rm -rf /etc/default/gogs
-    sudo service rsyslog restart
-    sudo rm -rf /var/log/gogs
-    sudo userdel gogs
-    sudo update-rc.d gogs remove
-    sudo rm -rf /home/gogs
+	sudo update-rc.d gogs remove
 else
-    sudo apt-get -y remove gogs
+	sudo systemctl disable gogs.service
+	sudo rm -rf /etc/systemd/system/gogs.service
+	sudo systemctl daemon-reload
 fi
+
+# Remove app
+sudo rm -rf /opt/gogs
+sudo rm -rf /opt/gogs_src
+sudo rm -rf /etc/ini.d/gogs
+sudo rm -rf /etc/logrotate.d/gogs
+sudo service rsyslog restart
+sudo rm -rf /var/log/gogs
+sudo userdel gogs
+sudo rm -rf /home/gogs
 
 # Remove home directory
 sudo rm -rf /home/yunohost.app/gogs
 
 # Remove database
 mysql -u root -p$root_pwd -e "DROP DATABASE $app ; DROP USER $app@localhost ;"
+
+# Remove monitor
+sudo yunohost service remove gogs 
 
 # Remove configuration files
 sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf

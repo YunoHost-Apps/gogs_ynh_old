@@ -54,15 +54,6 @@
                 },
                 "choices": ["Yes", "No"],
                 "default": "Yes"
-            },
-            {
-                "name": "architecture",
-                "ask": {
-                    "en": "What is the server architecture? If ou chose 'other', gogs will built automatically.",
-                    "fr": "Quelle est l'architecture du serveur ? Si vous choisissez 'other', gogs sera compillé automatiquement"
-                },
-                "choices": ["x86-64", "other"],
-                "default": "x86-64"
             }
         ]
     }
