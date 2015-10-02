@@ -43,6 +43,10 @@ else
 	sudo apt-get -y install git golang
 fi
 
+# Add users
+sudo addgroup gogs --system --quiet
+sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
+
 # Build Gogs
 base_directory=$PWD
 export GOPATH=/opt/gogs_src
@@ -54,19 +58,25 @@ sudo GOPATH=/opt/gogs_src: go build
 cd $base_directory
 sudo ln -s /opt/gogs_src/src/github.com/gogits/gogs /opt/gogs
 
+# repository path
+repo_path=/home/yunohost.app/$app
+sudo mkdir -p $repo_path
+sudo yunohost app setting $app repopath -v $repo_path
+
+# Create a link to static files
+sudo mkdir -p /etc/gogs/conf
+sudo mkdir -p /home/gogs/data/avatars
+sudo mkdir -p /var/log/gogs
+sudo rm -rf /opt/gogs/log
+sudo rm -rf /opt/gogs/custom
+sudo rm -rf /opt/gogs/data
+sudo ln -fs /etc/gogs /opt/gogs/custom
+sudo ln -fs /home/gogs/data /opt/gogs/data
+sudo ln -fs /var/log/gogs /opt/gogs/log
+
 # Configure logrotate
 sudo cp ../conf/logrotate /etc/logrotate.d/gogs
 sudo service rsyslog restart
-
-# Add users
-sudo addgroup gogs --system --quiet
-sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
-
-# link app log directory to /var/log/gogs
-sudo rm -rf /opt/gogs/log
-sudo mkdir /var/log/gogs
-sudo ln -fs /var/log/gogs /opt/gogs/log
-sudo chown -R gogs:gogs /var/log/gogs
 
 # Configure init script
 if [[ $(cat /etc/debian_version) = "7."* ]]
@@ -80,20 +90,12 @@ else
 	sudo systemctl enable gogs.service
 fi
 
-# Build directory for custom config
-sudo mkdir -p /opt/gogs/custom/conf/
-
-# Build directory for avatar
-sudo mkdir -p  /opt/gogs/data/avatars
-
 # Set gogs user for gogs directory
 sudo chown gogs:gogs -R  /opt/gogs_src
-
-# repository path
-repo_path=/home/yunohost.app/$app
-sudo mkdir -p $repo_path
+sudo chown gogs:gogs -R /etc/gogs
 sudo chown -hR gogs:gogs $repo_path
-sudo yunohost app setting $app repopath -v $repo_path
+sudo chown -R gogs:gogs /var/log/gogs
+sudo chown -R gogs:gogs /home/gogs
 
 # Copy and edit app.ini
 sudo cp ../conf/app.ini /opt/gogs/custom/conf
