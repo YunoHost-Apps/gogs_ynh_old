@@ -8,7 +8,7 @@
     "url": "http://gogs.io/",
     "maintainer": {
         "name": "mbugeia",
-        "email": "gogs@mbugeia.eu"
+        "email": "maxime@max.privy.place"
     },
     "multi_instance": "false",
     "arguments": {
@@ -33,8 +33,8 @@
             {
                 "name": "admin",
                 "ask": {
-                    "en": "Choose the admin user for Seafile",
-                    "fr": "Choisissez l'administrateur de Seafile"
+                    "en": "Choose the admin user for Gogs",
+                    "fr": "Choisissez l'administrateur de Gogs"
                 },
                 "example": "johndoe"
             },
