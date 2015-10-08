@@ -1,2 +1,2 @@
-INSERT INTO `login_source` (`id`, `type`, `name`, `is_actived`, `cfg`, `allow_auto_register`, `created`, `updated`) VALUES
-(1, 2, 'Yunohost LDAP', 1, '{"Name":"Yunohost LDAP","Host":"localhost","Port":389,"UseSSL":false,"BaseDN":"ou=users,dc=yunohost,dc=org","Attributes":"uid=%s","Filter":"mail","MsAdSAFormat":"uid=%s,ou=People,ou=Accounts,dc=example,dc=com","Enabled":true}', 1, '2015-01-29 17:09:00', '2015-01-29 17:09:00');
+INSERT INTO `gogs`.`login_source` (`id`, `type`, `name`, `is_actived`, `cfg`, `created`, `updated`) VALUES 
+('1', '2', 'Yunohost LDAP', '1', '{"Name":"Yunohost LDAP","Host":"localhost","Port":389,"UseSSL":false,"BindDN":"","BindPassword":"","UserBase":"ou=users,dc=yunohost,dc=org","AttributeName":"givenName","AttributeSurname":"sn","AttributeMail":"mail","Filter":"(uid=%s)","AdminFilter":"","Enabled":true}', '2015-01-01 00:00:00', '2015-01-01 00:00:00')

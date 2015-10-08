@@ -1,0 +1,1 @@
+UPDATE `gogs`.`user` SET `is_admin` = '1' WHERE `user`.`id` = 1;

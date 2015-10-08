@@ -7,18 +7,22 @@ A self-hosted Git service written in Go.
 
 Official website: <http://gogs.io/>
 
-Gogs v0.5.11
+Gogs v0.6.15
 
-Work:
- - The app :D
- - SSO with the first user
-
-Don't work for now:
- - Not fully automated, still have to populate an admin (same name as your yunohost user) and click install
- - LDAP (not configured)
+Arch:
+Gogs will be build in the installation so it is compatible with all arch.
 
 TODO
- - finish install with curl and admin / password / email
- - ldap config in database
- - find a way to don't use app password but ldap auth for the admin
- - upgrade script
+ - Backup and restore script
+ 
+FOR DEVELOPPER : sources files (sources/gogs_src.tar.gz) is build with this command :
+```
+mkdir -p /opt/gogs_src/src/github.com/gogits
+cd /opt/gogs_src/src/github.com/gogits
+git clone --depth=500 -b master https://github.com/gogits/gogs
+cd gogs
+git reset --hard v0.6.15    # adapt version
+GOPATH=/opt/gogs_src: go get -d ./...
+cd /opt
+tar czf gogs_src.tar.gz gogs_src
+```
