@@ -15,7 +15,11 @@ Gogs will be build in the installation so it is compatible with all arch.
 TODO
  - Backup and restore script
  
-FOR DEVELOPPER : sources files (sources/gogs_src.tar.gz) is build with this command :
+FOR DEVELOPPER : 
+
+Please do your pull request to the dev branch.
+
+sources files (sources/gogs_src.tar.gz) is build with this command :
 ```
 mkdir -p /opt/gogs_src/src/github.com/gogits
 cd /opt/gogs_src/src/github.com/gogits
