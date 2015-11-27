@@ -60,16 +60,16 @@ then
 fi
 
 # Build Gogs
-sudo rm -rf $final_path_src
+sudo rm -rf "$final_path"_src
 base_directory=$PWD
-export GOPATH=$final_path_src
+export GOPATH="$final_path"_src
 tar xzf ../sources/gogs_src.tar.gz
 sudo mv gogs_src $GOPATH
 cd $GOPATH/src/github.com/gogits/gogs
-sudo GOPATH=$final_path_src: go get ./...
-sudo GOPATH=$final_path_src: go build
+sudo GOPATH="$final_path"_src: go get ./...
+sudo GOPATH="$final_path"_src: go build
 cd $base_directory
-sudo ln -s $final_path_src/src/github.com/gogits/gogs $final_path
+sudo ln -s "$final_path"_src/src/github.com/gogits/gogs $final_path
 
 # Create a link to static files
 sudo rm -rf $final_path/log
@@ -113,7 +113,7 @@ fi
 sudo mkdir -p /opt/gogs/custom/conf/
 
 # Set gogs user for gogs directory
-sudo chown gogs:gogs -R  $final_path_src
+sudo chown gogs:gogs -R  "$final_path"_src
 sudo chown gogs:gogs -R $final_path
 sudo chown -hR gogs:gogs $repo_path
 sudo chown -R gogs:gogs /var/log/gogs
