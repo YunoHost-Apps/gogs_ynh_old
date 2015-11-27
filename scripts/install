@@ -9,10 +9,8 @@ password=$4
 is_public=$5
 
 # Check domain/path availability
-sudo yunohost app checkurl $domain$path -a $app
-if [[ ! $? -eq 0 ]]; then
-    exit 1
-fi
+sudo yunohost app checkurl $domain$path -a $app  \
+    || (echo "Path not available: $domain$path" && exit 1)
 
 # Generate random password
 db_pwd=$(openssl rand -hex 15)
