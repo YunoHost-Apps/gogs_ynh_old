@@ -120,7 +120,7 @@ mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/add_admin.sql
 sudo yunohost service add gogs --log /var/log/gogs.log
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf*
+sed -i "s@PATHTOCHANGE@{path%/}@g" ../conf/nginx.conf*
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
 if [ "$is_public" = "Yes" ]
