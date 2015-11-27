@@ -25,6 +25,7 @@ then
 	sudo service gogs-web stop
 	
 	# Save gogs directory before deleting package
+	sudo mkdir -p /opt/gogs_old
 	sudo cp -r /opt/gogs /opt/gogs_old
 	
 	# Purge deb package
@@ -56,9 +57,6 @@ then
 	else
 		sudo apt-get -y install git golang
 	fi
-
-	# Create a link for gogs
-	sudo ln -s /opt/gogs_src/src/github.com/gogits/gogs /opt/gogs
 fi
 
 # Build Gogs
@@ -71,6 +69,7 @@ cd $GOPATH/src/github.com/gogits/gogs
 sudo GOPATH=$final_path_src: go get ./...
 sudo GOPATH=$final_path_src: go build
 cd $base_directory
+sudo ln -s $final_path_src/src/github.com/gogits/gogs $final_path
 
 # Create a link to static files
 sudo rm -rf $final_path/log
@@ -80,6 +79,22 @@ sudo ln -fs /etc/gogs $final_path/custom
 sudo ln -fs /home/gogs/data $final_path/data
 sudo ln -fs /var/log/gogs $final_path/log
 
+# Configure init script
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    sudo cp ../conf/sysvinit/gogs /etc/init.d/
+    sudo chmod u+x /etc/init.d/gogs
+    sudo update-rc.d gogs defaults
+else
+    sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable gogs.service
+fi
+
+# Configure logrotate
+sudo cp ../conf/logrotate /etc/logrotate.d/gogs
+sudo service rsyslog restart
+
 # Configure gogs for package from app
 if [[ $package_removed = 'true' ]]
 then
@@ -88,29 +103,14 @@ then
 	sudo cp -r /opt/gogs_old/data/. $final_path/data/
 	sudo rm -rf /opt/gogs_old
 
-	# Configure logrotate
-	sudo cp ../conf/logrotate /etc/logrotate.d/gogs
-	sudo service rsyslog restart
-
-	# Configure init script
-	if [[ $(cat /etc/debian_version) = "7."* ]]
-	then
-		sudo cp ../conf/sysvinit/gogs /etc/init.d/
-		sudo chmod u+x /etc/init.d/gogs
-		sudo update-rc.d gogs defaults
-	else
-		sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
-		sudo systemctl daemon-reload
-		sudo systemctl enable gogs.service
-	fi
-	
 	# Change monitor parametre
 	sudo yunohost service remove gogs-web
 	sudo yunohost service add gogs --log /var/log/gogs.log
 
-	# Build directory for custom config
-	sudo mkdir -p /opt/gogs/custom/conf/
 fi
+
+# ensure directory for custom config is present
+sudo mkdir -p /opt/gogs/custom/conf/
 
 # Set gogs user for gogs directory
 sudo chown gogs:gogs -R  $final_path_src
@@ -133,10 +133,11 @@ sudo chown gogs:gogs $final_path/custom/conf/app.ini
 sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf*
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
+sudo service gogs restart
+
 # Configure ldap if it is on old installation
 if [[ $package_removed = 'true' ]]
 then
-	sudo service gogs restart # for building mysql table
 	sleep 30
 	mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
 fi
@@ -144,5 +145,3 @@ fi
 # Reload Nginx and regenerate SSOwat conf
 sudo service nginx reload
 sudo yunohost app ssowatconf
-
-sudo service gogs start
