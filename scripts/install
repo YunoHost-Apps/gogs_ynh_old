@@ -30,14 +30,14 @@ sudo yunohost app setting $app secret_key -v $key
 # Install dependances (use backport repo for wheezy for golang package)
 if [[ $(cat /etc/debian_version) = "7."* ]]
 then
-	sudo apt-get -y install git
-	sudo echo "deb http://http.debian.net/debian wheezy-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
-	sudo apt-get update
-	sudo apt-get install -y golang=2:1.3.3-1~bpo70+1 golang-go=2:1.3.3-1~bpo70+1 golang-src=2:1.3.3-1~bpo70+1 golang-doc=2:1.3.3-1~bpo70+1 -V
-	sudo rm /etc/apt/sources.list.d/debian-backport-tmp.list
-	sudo apt-get update
+    sudo apt-get -y install git
+    sudo echo "deb http://http.debian.net/debian wheezy-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+    sudo apt-get install -y golang=2:1.3.3-1~bpo70+1 golang-go=2:1.3.3-1~bpo70+1 golang-src=2:1.3.3-1~bpo70+1 golang-doc=2:1.3.3-1~bpo70+1 -V
+    sudo rm /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
 else
-	sudo apt-get -y install git golang
+    sudo apt-get -y install git golang
 fi
 
 # Add users
@@ -79,13 +79,13 @@ sudo service rsyslog restart
 # Configure init script
 if [[ $(cat /etc/debian_version) = "7."* ]]
 then
-	sudo cp ../conf/sysvinit/gogs /etc/init.d/
-	sudo chmod u+x /etc/init.d/gogs
-	sudo update-rc.d gogs defaults
+    sudo cp ../conf/sysvinit/gogs /etc/init.d/
+    sudo chmod u+x /etc/init.d/gogs
+    sudo update-rc.d gogs defaults
 else
-	sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
-	sudo systemctl daemon-reload
-	sudo systemctl enable gogs.service
+    sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable gogs.service
 fi
 
 # Set gogs user for gogs directory
@@ -118,12 +118,18 @@ mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/add_admin.sql
 sudo yunohost service add gogs --log /var/log/gogs.log
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-sed -i "s@PATHTOCHANGE@${path%/}@g" ../conf/nginx.conf*
+sed -i "s@PATHTOCHANGE@${path%/}@g" ../conf/nginx.conf
+if [ "$path" = "/" ]
+then
+    sed -i "s@COMMENT_IF_ROOT@#@g" ../conf/nginx.conf
+else
+    sed -i "s@COMMENT_IF_ROOT@@g" ../conf/nginx.conf
+fi
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
 if [ "$is_public" = "Yes" ]
 then
-	sudo yunohost app setting gogs unprotected_uris -v "/"
+    sudo yunohost app setting gogs unprotected_uris -v "/"
 fi
 
 # Reload Nginx and regenerate SSOwat conf

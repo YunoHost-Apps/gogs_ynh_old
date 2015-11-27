@@ -132,7 +132,13 @@ sudo sed -i "s/yuno_key/$key/g" $final_path/custom/conf/app.ini
 sudo chown gogs:gogs $final_path/custom/conf/app.ini
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-sed -i "s@PATHTOCHANGE@${path%/}@g" ../conf/nginx.conf*
+sed -i "s@PATHTOCHANGE@${path%/}@g" ../conf/nginx.conf
+if [ "$path" = "/" ]
+then
+    sed -i "s@COMMENT_IF_ROOT@#@g" ../conf/nginx.conf
+else
+    sed -i "s@COMMENT_IF_ROOT@@g" ../conf/nginx.conf
+fi
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
 sudo service gogs restart
