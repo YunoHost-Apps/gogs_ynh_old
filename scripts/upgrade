@@ -57,6 +57,9 @@ then
 	else
 		sudo apt-get -y install git golang
 	fi
+
+	# Create a link for gogs
+	sudo ln -s "$final_path"_src/src/github.com/gogits/gogs $final_path
 fi
 
 # Build Gogs
@@ -69,7 +72,6 @@ cd $GOPATH/src/github.com/gogits/gogs
 sudo GOPATH="$final_path"_src: go get ./...
 sudo GOPATH="$final_path"_src: go build
 cd $base_directory
-sudo ln -s "$final_path"_src/src/github.com/gogits/gogs $final_path
 
 # Create a link to static files
 sudo rm -rf $final_path/log
