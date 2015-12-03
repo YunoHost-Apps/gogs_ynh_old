@@ -22,8 +22,9 @@ else
 fi
 
 # Remove app
-sudo rm -rf /opt/gogs
-sudo rm -rf /opt/gogs_src
+final_path=/opt/$app
+sudo rm -rf $final_path
+sudo rm -rf "$final_path"_src
 sudo rm -rf /etc/init.d/gogs
 sudo rm -rf /etc/logrotate.d/gogs
 sudo service rsyslog restart
