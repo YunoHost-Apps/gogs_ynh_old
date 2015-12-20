@@ -24,7 +24,7 @@ From command line:
 
 Infos
 -----
-Gogs v0.7.22
+Gogs v0.8.10
 
 Yunohost forum thread: to be created
 
