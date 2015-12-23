@@ -1,37 +1,70 @@
 #!/bin/bash
-app=gogs
 
-# The parameter $1 is the uncompressed restore directory location
-backup_dir=$1/apps/$app
+# The parameter $1 is the backup directory location dedicated to the app
+BACKUP_DIR=$1
 
-# install depencence for apt
-sudo apt-get -y install apt-transport-https
+# The parameter $2 is the id of the app instance ex: strut__2
+APP=$2
 
-# Add repository
-sudo wget -qO - https://deb.packager.io/key | sudo apt-key add -
-sudo echo "deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr" | sudo tee /etc/apt/sources.list.d/gogs.list
+domain=$(sudo yunohost app setting $APP domain)
+path=$(sudo yunohost app setting $APP path)
 
-# install gogs
-sudo apt-get update
-sudo apt-get -y install gogs 
+# Check domain/path availability
+sudo yunohost app checkurl $domain$path -a $APP
+if [[ ! $? -eq 0 ]]; then
+    echo "There is already an app on this URL : $domain$path" | sudo tee /dev/stderr
+    exit 1
+fi
+
+# Restore the app files
+final_path=/opt/$APP
+
+if [ -d $final_path ]; then
+    echo "There is already a directory: $final_path " | sudo tee /dev/stderr
+    exit 1
+fi
+sudo cp -a "${BACKUP_DIR}/www" $final_path
+sudo chown -R www-data: $final_path
+
+# Restore the conf files
+conf=/etc/nginx/conf.d/$domain.d/$APP.conf
+if [ -f $conf ]; then
+    echo "There is already a nginx conf file at this path: $conf " | sudo tee /dev/stderr
+    exit 1
+fi
+sudo cp -a "${BACKUP_DIR}/conf/nginx.conf" $conf
 
 # Restore data
-repo_path=$(sudo yunohost app setting $app repopath)
-sudo cp -a $backup_dir/data/. $repo_path
-
-# Restore config
-sudo cp $backup_dir/conf/app.ini /opt/gogs/custom/conf/app.ini
+repo_path=$(sudo yunohost app setting $APP repopath)
+sudo cp -a ${BACKUP_DIR}/data/. $repo_path
 
 # Restore mysql dump
-db_pwd=$(sudo yunohost app setting $app mysqlpwd)
-sudo mysql -u $app -p$db_pwd $app < $backup_dir/$app.dmp
+db_pwd=$(sudo yunohost app setting $APP mysqlpwd)
+sudo mysql -u $APP -p$db_pwd $APP < "${BACKUP_DIR}/$APP.dmp"
 
-# Restore Nginx and YunoHost parameters
-sudo cp -a $backup_dir/yunohost/. /etc/yunohost/apps/$app
-domain=$(sudo yunohost app setting $app domain)
-sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
+# Restore dependances (use backport repo for wheezy for golang package)
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    sudo apt-get -y install git
+    sudo echo "deb http://http.debian.net/debian wheezy-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+    sudo apt-get install -y golang=2:1.3.3-1~bpo70+1 golang-go=2:1.3.3-1~bpo70+1 golang-src=2:1.3.3-1~bpo70+1 golang-doc=2:1.3.3-1~bpo70+1 -V
+    sudo rm /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+else
+    sudo apt-get -y install git golang
+fi
 
-# Restart webserver
+# Restore users
+sudo addgroup gogs --system --quiet
+sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
+
+# Add Gogs to YunoHost's monitored services
+sudo yunohost service add gogs --log /var/log/gogs.log
+
+# Reload Nginx
 sudo service nginx reload
+sudo yunohost app ssowatconf
 
+# start gogs
 sudo service gogs start
