@@ -1,16 +1,22 @@
 #!/bin/bash
+
+set -e
+
 app=gogs
 
 # Retrieve arguments
 domain=$1
 path=$2
 admin=$3
-password=$4
-is_public=$5
+is_public=$4
 
 # Check domain/path availability
 sudo yunohost app checkurl $domain$path -a $app  \
     || (echo "Path not available: $domain$path" && exit 1)
+
+# Check that admin user is an existing account
+sudo yunohost user list --json | grep -q "\"username\": \"$admin\"" \
+    || (echo "Error: the chosen admin user does not exist" && exit 1)
 
 # Generate random password
 db_pwd=$(openssl rand -hex 15)
@@ -108,11 +114,8 @@ sudo chown gogs:gogs $final_path/custom/conf/app.ini
 # Add ldap config
 sudo service gogs restart # for building mysql table
 sleep 30
+sudo sed -i "s@yuno_admin@$admin@g" ../conf/login_source.sql
 mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
-
-# add admin user
-curl --user $admin:$password http://localhost:6000 > /dev/null # create a user in the gogs database
-mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/add_admin.sql
 
 # Add Gogs to YunoHost's monitored services
 sudo yunohost service add gogs --log /var/log/gogs.log
