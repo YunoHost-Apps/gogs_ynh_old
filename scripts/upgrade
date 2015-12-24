@@ -7,6 +7,7 @@ path=$(sudo yunohost app setting $app path)
 repo_path=$(sudo yunohost app setting $app repopath)
 db_pwd=$(sudo yunohost app setting $app mysqlpwd)
 key=$(sudo yunohost app setting $app secret_key)
+adminusername=$(sudo yunohost app setting $app adminusername)
 
 # cut the second "/" of path
 path="/$(echo "$path" | cut -d/ -f2)"
@@ -130,6 +131,10 @@ sudo sed -i "s/yuno_dbuser/$app/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_domain/$domain/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_key/$key/g" $final_path/custom/conf/app.ini
 sudo chown gogs:gogs $final_path/custom/conf/app.ini
+
+# Restore ldap config
+sudo sed -i "s@yuno_admin@a$dminusername@g" ../conf/login_source.sql
+mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
 sed -i "s@PATHTOCHANGE@${path%/}@g" ../conf/nginx.conf
