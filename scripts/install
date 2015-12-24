@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 app=gogs
 
 # Retrieve arguments
@@ -12,7 +15,7 @@ sudo yunohost app checkurl $domain$path -a $app  \
     || (echo "Path not available: $domain$path" && exit 1)
 
 # Check that admin user is an existing account
-sudo yunohost user list --json | grep -q "\"username\": \"lol\"" \
+sudo yunohost user list --json | grep -q "\"username\": \"$admin\"" \
     || (echo "Error: the chosen admin user does not exist" && exit 1)
 
 # Generate random password
