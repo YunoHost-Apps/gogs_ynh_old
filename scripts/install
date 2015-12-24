@@ -10,6 +10,12 @@ path=$2
 admin=$3
 is_public=$4
 
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    echo "You need debian Jessie (8.x) to install gogs."
+    exit 1
+fi
+
 # Check domain/path availability
 sudo yunohost app checkurl $domain$path -a $app  \
     || (echo "Path not available: $domain$path" && exit 1)
@@ -33,18 +39,12 @@ sudo yunohost app setting $app adminusername -v $admin
 sudo yunohost app setting $app is_public -v $is_public
 sudo yunohost app setting $app secret_key -v $key
 
-# Install dependances (use backport repo for wheezy for golang package)
-if [[ $(cat /etc/debian_version) = "7."* ]]
-then
-    sudo apt-get -y install git
-    sudo echo "deb http://http.debian.net/debian wheezy-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
-    sudo apt-get update
-    sudo apt-get install -y golang=2:1.3.3-1~bpo70+1 golang-go=2:1.3.3-1~bpo70+1 golang-src=2:1.3.3-1~bpo70+1 golang-doc=2:1.3.3-1~bpo70+1 -V
-    sudo rm /etc/apt/sources.list.d/debian-backport-tmp.list
-    sudo apt-get update
-else
-    sudo apt-get -y install git golang
-fi
+# Install golang package from jessie backport
+sudo echo "deb http://http.debian.net/debian jessie-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+sudo apt-get update
+sudo apt-get -t jessie-backports -y install golang
+sudo rm -f /etc/apt/sources.list.d/debian-backport-tmp.list
+sudo apt-get update
 
 # Add users
 sudo addgroup gogs --system --quiet
@@ -83,16 +83,9 @@ sudo cp ../conf/logrotate /etc/logrotate.d/gogs
 sudo service rsyslog restart
 
 # Configure init script
-if [[ $(cat /etc/debian_version) = "7."* ]]
-then
-    sudo cp ../conf/sysvinit/gogs /etc/init.d/
-    sudo chmod u+x /etc/init.d/gogs
-    sudo update-rc.d gogs defaults
-else
-    sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable gogs.service
-fi
+sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable gogs.service
 
 # Set gogs user for gogs directory
 sudo chown gogs:gogs -R  "$final_path"_src

@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 app=gogs
 
 # Retrieve settings
@@ -11,6 +14,12 @@ adminusername=$(sudo yunohost app setting $app adminusername)
 
 # cut the second "/" of path
 path="/$(echo "$path" | cut -d/ -f2)"
+
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    echo "You need debian Jessie (8.x) to upgrade gogs."
+    exit 1
+fi
 
 # Stop service
 sudo service gogs stop
@@ -37,16 +46,9 @@ sudo ln -fs /home/gogs/data $final_path/data
 sudo ln -fs /var/log/gogs $final_path/log
 
 # Configure init script
-if [[ $(cat /etc/debian_version) = "7."* ]]
-then
-    sudo cp ../conf/sysvinit/gogs /etc/init.d/
-    sudo chmod u+x /etc/init.d/gogs
-    sudo update-rc.d gogs defaults
-else
-    sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable gogs.service
-fi
+sudo cp ../conf/systemd/gogs.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable gogs.service
 
 # Configure logrotate
 sudo cp ../conf/logrotate /etc/logrotate.d/gogs
