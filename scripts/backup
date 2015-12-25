@@ -5,24 +5,32 @@ set -e
 # The parameter $1 is the backup directory location dedicated to the app
 BACKUP_DIR=$1
 
-# The parameter $2 is theid of the app instance ex: strut__2
-APP=$2
+# The parameter $2 is the id of the app instance ex: strut__2
+app=$2
 
-domain=$(sudo yunohost app setting $APP domain)
+# retrieve useful param
+domain=$(sudo yunohost app setting $app domain)
+repo_path=$(sudo yunohost app setting $app repopath)
+db_pwd=$(sudo yunohost app setting $app mysqlpwd)
 
-# Copy the app files
-final_path=/opt/$APP
-sudo cp -a $final_path "${BACKUP_DIR}/www"
+# Backup app files
+sudo mkdir -p "${BACKUP_DIR}/www"
+sudo cp -a "/opt/${app}_src" "${BACKUP_DIR}/www"
 
-# Copy the conf files
+# Backup conf files
 sudo mkdir -p "${BACKUP_DIR}/conf"
-sudo cp -a /etc/nginx/conf.d/$domain.d/$APP.conf "${BACKUP_DIR}/conf/nginx.conf"
+sudo cp -a /etc/nginx/conf.d/$domain.d/$app.conf "${BACKUP_DIR}/conf/${app}.conf"
+sudo cp -a /etc/gogs/conf/app.ini "${BACKUP_DIR}/conf/app.ini"
+sudo cp -a /etc/logrotate.d/gogs "${BACKUP_DIR}/conf/gogs"
+sudo cp -a /etc/systemd/system/gogs.service "${BACKUP_DIR}/conf/gogs.service"
 
 # Backup data
-repo_path=$(sudo yunohost app setting $APP repopath)
 sudo mkdir -p "${BACKUP_DIR}/data"
 sudo cp -a $repo_path/. "${BACKUP_DIR}/data"
 
+# Backup gogs home
+sudo mkdir -p "${BACKUP_DIR}/home"
+sudo cp -a /home/gogs/. "${BACKUP_DIR}/home"
+
 # Backup mysql
-db_pwd=$(sudo yunohost app setting $APP mysqlpwd)
-sudo mysqldump -u $APP -p$db_pwd $APP > "${BACKUP_DIR}/$APP.dmp"
+sudo mysqldump -u $app -p$db_pwd $app > "${BACKUP_DIR}/${app}.dmp"
