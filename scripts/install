@@ -96,7 +96,12 @@ sudo chown -R gogs:gogs /home/gogs
 # Copy and edit app.ini
 sudo cp ../conf/app.ini $final_path/custom/conf
 sudo sed -i "s@yuno_repo@$repo_path@g" $final_path/custom/conf/app.ini
-sudo sed -i "s@yuno_url@$domain$path@g" $final_path/custom/conf/app.ini
+if [ "$path" = "/" ]
+then
+    sudo sed -i "s@yuno_url@$domain@g" $final_path/custom/conf/app.ini
+else
+    sudo sed -i "s@yuno_url@$domain${path%/}@g" $final_path/custom/conf/app.ini
+fi
 sudo sed -i "s/yuno_dbpdw/$db_pwd/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_dbuser/$app/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_domain/$domain/g" $final_path/custom/conf/app.ini

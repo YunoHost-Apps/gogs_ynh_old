@@ -12,9 +12,6 @@ db_pwd=$(sudo yunohost app setting $app mysqlpwd)
 key=$(sudo yunohost app setting $app secret_key)
 adminusername=$(sudo yunohost app setting $app adminusername)
 
-# cut the second "/" of path
-path="/$(echo "$path" | cut -d/ -f2)"
-
 if [[ $(cat /etc/debian_version) = "7."* ]]
 then
     echo "You need debian Jessie (8.x) to upgrade gogs."
@@ -75,7 +72,12 @@ sudo chown -R gogs:gogs /home/gogs
 # Copy and edit app.ini
 sudo cp ../conf/app.ini $final_path/custom/conf
 sudo sed -i "s@yuno_repo@$repo_path@g" $final_path/custom/conf/app.ini
-sudo sed -i "s@yuno_url@$domain$path@g" $final_path/custom/conf/app.ini
+if [ "$path" = "/" ]
+then
+    sudo sed -i "s@yuno_url@$domain@g" $final_path/custom/conf/app.ini
+else
+    sudo sed -i "s@yuno_url@$domain${path%/}@g" $final_path/custom/conf/app.ini
+fi
 sudo sed -i "s/yuno_dbpdw/$db_pwd/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_dbuser/$app/g" $final_path/custom/conf/app.ini
 sudo sed -i "s/yuno_domain/$domain/g" $final_path/custom/conf/app.ini
