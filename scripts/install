@@ -57,8 +57,7 @@ export GOPATH="$final_path"_src
 tar xzf ../sources/gogs_src.tar.gz
 sudo mv gogs_src $GOPATH
 cd $GOPATH/src/github.com/gogits/gogs
-sudo GOPATH="$final_path"_src: go get ./...
-sudo GOPATH="$final_path"_src: go build
+go build
 cd $base_directory
 sudo ln -s "$final_path"_src/src/github.com/gogits/gogs $final_path
 

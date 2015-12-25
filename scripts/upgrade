@@ -21,6 +21,15 @@ then
     exit 1
 fi
 
+go version | grep 1.5 || {
+    # Install golang package from jessie backport if necessary
+    sudo echo "deb http://http.debian.net/debian jessie-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+    sudo apt-get -t jessie-backports -y install golang
+    sudo rm -f /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+}
+
 # Stop service
 sudo service gogs stop
 
@@ -33,8 +42,7 @@ export GOPATH="$final_path"_src
 tar xzf ../sources/gogs_src.tar.gz
 sudo mv gogs_src $GOPATH
 cd $GOPATH/src/github.com/gogits/gogs
-sudo GOPATH="$final_path"_src: go get ./...
-sudo GOPATH="$final_path"_src: go build
+go build
 cd $base_directory
 
 # Create a link to static files
