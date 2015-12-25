@@ -11,6 +11,10 @@
         "email": "maxime@max.privy.place"
     },
     "multi_instance": "false",
+    "services": [
+        "nginx",
+        "mysql"
+    ],
     "arguments": {
         "install" : [
             {
