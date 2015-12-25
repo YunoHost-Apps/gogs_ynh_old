@@ -83,7 +83,7 @@ sudo sed -i "s/yuno_key/$key/g" $final_path/custom/conf/app.ini
 sudo chown gogs:gogs $final_path/custom/conf/app.ini
 
 # Restore ldap config
-sudo sed -i "s@yuno_admin@a$dminusername@g" ../conf/login_source.sql
+sudo sed -i "s@yuno_admin@$adminusername@g" ../conf/login_source.sql
 mysql -u root -p$(sudo cat /etc/yunohost/mysql)  < ../conf/login_source.sql
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
