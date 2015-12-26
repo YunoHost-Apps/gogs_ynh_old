@@ -24,14 +24,22 @@ From command line:
 
 Infos
 -----
-Gogs v0.7.22
+Gogs v0.8.10
 
 Yunohost forum thread: to be created
 
 Architecture: Gogs will be build in the installation so it is compatible with all arch.
 
-Debian compatibility: Debian Wheezy and Jessie are supported. 
-In Wheezy it will install golang package from backport since Gogs need go >= 1.3 to build.
+Debian compatibility: only Jessie is supported. 
+It will install golang package from backport since Gogs need go >= 1.4 to build.
+
+License
+-------
+
+Gogs is published under MIT License
+https://github.com/gogits/gogs/blob/master/LICENSE
+
+This package is published under MIT License
 
 TODO
 ----
@@ -48,7 +56,7 @@ mkdir -p /opt/gogs_src/src/github.com/gogits
 cd /opt/gogs_src/src/github.com/gogits
 git clone --depth=500 -b master https://github.com/gogits/gogs
 cd gogs
-git reset --hard v0.7.22    # adapt version
+git reset --hard v0.8.10    # adapt version
 GOPATH=/opt/gogs_src: go get -d ./...
 cd /opt/gogs_src
 find . -name ".git" -type d -exec rm -rf {} \; # drastically reduced zip size

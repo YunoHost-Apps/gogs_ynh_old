@@ -12,20 +12,14 @@ repo_path=$(sudo yunohost app setting $app repopath)
 sudo rm -rf $repo_path
 
 # Remove init script
-if [[ $(cat /etc/debian_version) = "7."* ]]
-then
-	sudo update-rc.d gogs remove
-else
-	sudo systemctl disable gogs.service
-	sudo rm -rf /etc/systemd/system/gogs.service
-	sudo systemctl daemon-reload
-fi
+sudo systemctl disable gogs.service
+sudo rm -rf /etc/systemd/system/gogs.service
+sudo systemctl daemon-reload
 
 # Remove app
 final_path=/opt/$app
 sudo rm -rf $final_path
 sudo rm -rf "$final_path"_src
-sudo rm -rf /etc/init.d/gogs
 sudo rm -rf /etc/logrotate.d/gogs
 sudo service rsyslog restart
 sudo rm -rf /var/log/gogs

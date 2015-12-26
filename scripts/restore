@@ -1,37 +1,91 @@
 #!/bin/bash
-app=gogs
 
-# The parameter $1 is the uncompressed restore directory location
-backup_dir=$1/apps/$app
+set -e
 
-# install depencence for apt
-sudo apt-get -y install apt-transport-https
+# The parameter $1 is the backup directory location dedicated to the app
+BACKUP_DIR=$1
 
-# Add repository
-sudo wget -qO - https://deb.packager.io/key | sudo apt-key add -
-sudo echo "deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr" | sudo tee /etc/apt/sources.list.d/gogs.list
+# The parameter $2 is the id of the app instance ex: strut__2
+app=$2
 
-# install gogs
-sudo apt-get update
-sudo apt-get -y install gogs 
+domain=$(sudo yunohost app setting $app domain)
+path=$(sudo yunohost app setting $app path)
+repo_path=$(sudo yunohost app setting $app repopath)
+db_pwd=$(sudo yunohost app setting $app mysqlpwd)
+adminusername=$(sudo yunohost app setting $app adminusername)
+
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    echo "You need debian Jessie (8.x) to install gogs."
+    exit 1
+fi
+
+# Check domain/path availability
+sudo yunohost app checkurl $domain$path -a $app  \
+    || (echo "Path not available: $domain$path" && exit 1)
+
+# Check that admin user is an existing account
+sudo yunohost user list --json | grep -q "\"username\": \"$adminusername\"" \
+    || (echo "Error: the chosen admin user does not exist" && exit 1)
+
+go version | grep 1.5 || {
+    # Install golang package from jessie backport if necessary
+    sudo echo "deb http://http.debian.net/debian jessie-backports main" | sudo tee /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+    sudo apt-get -t jessie-backports -y install golang
+    sudo rm -f /etc/apt/sources.list.d/debian-backport-tmp.list
+    sudo apt-get update
+}
+
+# Add users
+sudo addgroup gogs --system --quiet
+sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
+
+# Restore app files
+final_path=opt/"$app"_src
+sudo mkdir -p $final_path
+sudo cp -a "${BACKUP_DIR}/www" $final_path
+
+# Create directory and link
+sudo mkdir -p /etc/gogs/conf
+sudo mkdir -p /home/gogs/data/avatars
+sudo mkdir -p /var/log/gogs
+sudo ln -fs /etc/gogs $final_path/custom
+sudo ln -fs /home/gogs/data $final_path/data
+sudo ln -fs /var/log/gogs $final_path/log
+sudo ln -s "$final_path"/src/github.com/gogits/gogs opt/"$app"
+
+# Restore conf files
+sudo cp -a "${BACKUP_DIR}/conf/${app}.conf" /etc/nginx/conf.d/$domain.d/$app.conf
+sudo cp -a "${BACKUP_DIR}/conf/app.ini" /etc/gogs/conf/app.ini
+sudo cp -a "${BACKUP_DIR}/conf/gogs" /etc/logrotate.d/gogs
+sudo cp -a "${BACKUP_DIR}/conf/gogs.service" /etc/systemd/system/gogs.service
 
 # Restore data
-repo_path=$(sudo yunohost app setting $app repopath)
-sudo cp -a $backup_dir/data/. $repo_path
+sudo cp -a "${BACKUP_DIR}/data/." $repo_path
 
-# Restore config
-sudo cp $backup_dir/conf/app.ini /opt/gogs/custom/conf/app.ini
+# Restore gogs home
+sudo cp -a "${BACKUP_DIR}/home/." /home/gogs
 
 # Restore mysql dump
-db_pwd=$(sudo yunohost app setting $app mysqlpwd)
-sudo mysql -u $app -p$db_pwd $app < $backup_dir/$app.dmp
+sudo mysql -u $app -p$db_pwd $app < "${BACKUP_DIR}/$app.dmp"
 
-# Restore Nginx and YunoHost parameters
-sudo cp -a $backup_dir/yunohost/. /etc/yunohost/apps/$app
-domain=$(sudo yunohost app setting $app domain)
-sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
+# Restore permissions
+sudo chown gogs:gogs -R $final_path
+sudo chown -hR gogs:gogs $repo_path
+sudo chown -R gogs:gogs /var/log/gogs
+sudo chown -R gogs:gogs /home/gogs
+sudo chown gogs:gogs $final_path/custom/conf/app.ini
 
-# Restart webserver
+# Add Gogs to YunoHost's monitored services
+sudo yunohost service add gogs --log /var/log/gogs.log
+
+# Reload/restart services
+sudo service rsyslog restart
+sudo systemctl daemon-reload
+sudo systemctl enable gogs.service
 sudo service nginx reload
+sudo yunohost app ssowatconf
 
+# start gogs
 sudo service gogs start
