@@ -33,6 +33,14 @@ Architecture: Gogs will be build in the installation so it is compatible with al
 Debian compatibility: only Jessie is supported. 
 It will install golang package from backport since Gogs need go >= 1.4 to build.
 
+License
+-------
+
+Gogs is published under MIT License
+https://github.com/gogits/gogs/blob/master/LICENSE
+
+This package is published under MIT License
+
 TODO
 ----
  - Backup and restore script need rework
