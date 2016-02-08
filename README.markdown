@@ -26,7 +26,7 @@ Infos
 -----
 Gogs v0.8.10
 
-Yunohost forum thread: to be created
+Yunohost forum thread: https://forum.yunohost.org/t/gogs-package-an-awesome-github-alternative/1127
 
 Architecture: Gogs will be build in the installation so it is compatible with all arch.
 
