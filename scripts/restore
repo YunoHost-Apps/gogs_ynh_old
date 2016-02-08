@@ -6,13 +6,13 @@ set -e
 BACKUP_DIR=$1
 
 # The parameter $2 is the id of the app instance ex: strut__2
-app=$2
+APP=$2
 
-domain=$(sudo yunohost app setting $app domain)
-path=$(sudo yunohost app setting $app path)
-repo_path=$(sudo yunohost app setting $app repopath)
-db_pwd=$(sudo yunohost app setting $app mysqlpwd)
-adminusername=$(sudo yunohost app setting $app adminusername)
+domain=$(sudo yunohost app setting ${APP} domain)
+path=$(sudo yunohost app setting ${APP} path)
+repo_path=$(sudo yunohost app setting ${APP} repopath)
+db_pwd=$(sudo yunohost app setting ${APP} mysqlpwd)
+adminusername=$(sudo yunohost app setting ${APP} adminusername)
 
 if [[ $(cat /etc/debian_version) = "7."* ]]
 then
@@ -21,7 +21,7 @@ then
 fi
 
 # Check domain/path availability
-sudo yunohost app checkurl $domain$path -a $app  \
+sudo yunohost app checkurl $domain$path -a ${APP}  \
     || (echo "Path not available: $domain$path" && exit 1)
 
 # Check that admin user is an existing account
@@ -42,7 +42,7 @@ sudo addgroup gogs --system --quiet
 sudo adduser gogs --disabled-login --ingroup gogs --system --quiet --shell /bin/bash
 
 # Restore app files
-final_path=opt/"$app"_src
+final_path=opt/"${APP}"_src
 sudo mkdir -p $final_path
 sudo cp -a "${BACKUP_DIR}/www" $final_path
 
@@ -53,22 +53,24 @@ sudo mkdir -p /var/log/gogs
 sudo ln -fs /etc/gogs $final_path/custom
 sudo ln -fs /home/gogs/data $final_path/data
 sudo ln -fs /var/log/gogs $final_path/log
-sudo ln -s "$final_path"/src/github.com/gogits/gogs opt/"$app"
+sudo ln -s "$final_path"/src/github.com/gogits/gogs opt/"${APP}"
 
 # Restore conf files
-sudo cp -a "${BACKUP_DIR}/conf/${app}.conf" /etc/nginx/conf.d/$domain.d/$app.conf
+sudo cp -a "${BACKUP_DIR}/conf/${APP}.conf" /etc/nginx/conf.d/$domain.d/${APP}.conf
 sudo cp -a "${BACKUP_DIR}/conf/app.ini" /etc/gogs/conf/app.ini
 sudo cp -a "${BACKUP_DIR}/conf/gogs" /etc/logrotate.d/gogs
 sudo cp -a "${BACKUP_DIR}/conf/gogs.service" /etc/systemd/system/gogs.service
 
 # Restore data
+sudo mkdir -p $repo_path
 sudo cp -a "${BACKUP_DIR}/data/." $repo_path
 
 # Restore gogs home
+sudo mkdir -p /home/gogs
 sudo cp -a "${BACKUP_DIR}/home/." /home/gogs
 
 # Restore mysql dump
-sudo mysql -u $app -p$db_pwd $app < "${BACKUP_DIR}/$app.dmp"
+sudo su -c "mysql -u ${APP} -p$db_pwd ${APP} < ${BACKUP_DIR}/${APP}.dmp"
 
 # Restore permissions
 sudo chown gogs:gogs -R $final_path
